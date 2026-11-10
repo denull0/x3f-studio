@@ -1,4 +1,12 @@
-# X3F Studio
+<p align="center">
+  <img src="assets/icon.png" width="128" height="128" alt="X3F Studio icon">
+</p>
+
+<h1 align="center">X3F Studio</h1>
+
+<p align="center">
+  <img src="assets/screenshot.webp" alt="The X3F Studio library: a day of DP2 Merrill photos with its title and tags">
+</p>
 
 A small macOS app for Sigma dp Quattro and Merrill photos: import X3F files (or whole
 folders) into a library organised by capture date, adjust them with **SIGMA Photo Pro's own
