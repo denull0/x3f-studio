@@ -21,14 +21,30 @@ post-processed in the app.
 
 Requires: Apple silicon Mac, macOS 14+, SIGMA Photo Pro 6 installed in `/Applications`.
 
+## Download
+
+Get the latest build from [Releases](https://github.com/denull0/x3f-studio/releases/latest), unzip
+it and move **X3F Studio** to Applications. The app is not notarised by Apple yet, so macOS stops
+the first launch:
+
+1. Open X3F Studio and click **Done** in the warning.
+2. Open **System Settings ▸ Privacy & Security**, scroll down and click **Open Anyway** next to
+   X3F Studio, then confirm.
+
+On macOS 14 you can instead Control-click the app and choose **Open**. Or clear the download flag
+in Terminal:
+
+    xattr -dr com.apple.quarantine "/Applications/X3F Studio.app"
+
 ## Build
 
     ./build.sh            # → build/X3F Studio.app   (Command Line Tools only, no Xcode licence needed)
     open "build/X3F Studio.app"
 
-The app is unsigned: first launch with right-click → Open. The icon is pre-rendered in
-`assets/AppIcon.icns`; `tools/makeicon.swift` redraws its master from Sigma's web fonts, which
-are not included.
+A local build opens without that warning. The icon is pre-rendered in `assets/AppIcon.icns`;
+`tools/makeicon.swift` redraws its master from Sigma's web fonts, which are not included. The
+licences of the third-party code in the app are collected into
+`Contents/Resources/Acknowledgements.txt` inside the bundle.
 
 ## Library layout
 
