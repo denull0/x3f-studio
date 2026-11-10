@@ -1,0 +1,31 @@
+shim loaded in pid 43587; real engine /private/tmp/sppcap_app/SIGMA_PhotoPro6.app/Contents/MonoBundle/Sensor/real/lib99_MerillDLLForMac.dylib -> 0x75b84ad0
+initialize pid=43587 cert='SFiogvmeaon' tmp='~/Library/Application Support/SIGMA_PhotoPro6/Temp' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app'
+initialize -> 0
+call querySelfAdjustment x0=0xa991f0800 x1=0x1 x2=0x586800000 x3=0 x4=0 x5=0 x6=0x103db18e0 x7=0x103db1990 | stk 0x103515a00 0xd166 0x16de10b30 0x103d89f0c 0x118b7ddc0 0xa991f0800 0x1 0x586800000
+call queryAllocationSize x0=0x16de10cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa971d7e70 x5=0xa971d6980 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16de11140 0x103d89840 0x11886d058 0x16de11190 0 0xc4000001260 0x1 0xffffffff000000c0
+requestProcess #3 desig=1 loupe=-1,-1,-1,-1 outMB=1 obj=0xd166 input=0x586800000(398458880) output=0x138d01458(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=293 h=439
+requestProcess #3 -> 0
+call queryAllocationSize x0=0x16eb94cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa95cc0070 x5=0xa95cc0bc0 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16eb95140 0x103d89840 0x118805178 0x16eb95190 0 0xc4000001260 0x1 0x3000000c0
+requestProcess #5 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x138e00548(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #5 -> 0
+call queryAllocationSize x0=0x16de10cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa99108410 x5=0xa991083d0 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16de11140 0x103d89840 0x11886df10 0x16de11190 0 0xc4000001260 0x1 0x8000000000c0
+requestProcess #7 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x138feef68(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #7 -> 0
+call queryAllocationSize x0=0x16de10cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa99108490 x5=0xa99108440 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16de11140 0x103d89840 0x118bc8890 0x16de11190 0 0xc4000001260 0x1 0x10000000000c0
+requestProcess #9 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x138d49088(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #9 -> 0
+call queryAllocationSize x0=0x16e77ccb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa95cc1d70 x5=0xa95cc0560 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16e77d140 0x103d89840 0x118807500 0x16e77d190 0 0xc4000001260 0x1 0x30000000000c0
+requestProcess #11 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x1391b9348(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #11 -> 0
+call queryAllocationSize x0=0x16eb94cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa958f3900 x5=0xa958f2e50 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16eb95140 0x103d89840 0x118807680 0x16eb95190 0 0xc4000001260 0x1 0x70000000000c0
+requestProcess #13 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x138f16fb8(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #13 -> 0
+call queryAllocationSize x0=0x16e77ccb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa971d5bc0 x5=0xa971d7f10 x6=0x11cd4d41c x7=0 | stk 0x16e77d140 0x103d89840 0x118807020 0x16e77d190 0 0xc4000001260 0x1 0xf0000000000c0
+requestProcess #15 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x1391b9348(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #15 -> 0
+call queryAllocationSize x0=0x16eb94cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa96221040 x5=0xa96221d20 x6=0x11cd4d41c x7=0 | stk 0x16eb95140 0x103d89840 0x1188068c0 0x16eb95190 0 0xc4000001260 0x1 0x3f0000000000c0
+requestProcess #17 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x138f16fb8(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #17 -> 0
+call queryAllocationSize x0=0x16dd84cb8 x1=0 x2=0xc4000001260 x3=0x1 x4=0xa991083b0 x5=0xa99108490 x6=0x11cd4d41c x7=0xfffff0003ffff800 | stk 0x16dd85140 0x103d89840 0x118af7f48 0x16dd85190 0 0xc4000001260 0x1 0xe0000000000000c0
+requestProcess #19 desig=1 loupe=-1,-1,-1,-1 outMB=2 obj=0xd166 input=0x586800000(398458880) output=0x139101e88(0) camf=0x5bf400000(10240000) lens=0xa9938c000(32768) uniq='30303431323235375747014F41443138' cwd='/private/tmp/sppcap_app/SIGMA_PhotoPro6.app' w=559 h=838
+requestProcess #19 -> 0
