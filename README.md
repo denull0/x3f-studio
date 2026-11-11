@@ -31,10 +31,16 @@ the first launch:
 2. Open **System Settings ▸ Privacy & Security**, scroll down and click **Open Anyway** next to
    X3F Studio, then confirm.
 
-On macOS 14 you can instead Control-click the app and choose **Open**. Or clear the download flag
-in Terminal:
+On macOS 14 you can instead Control-click the app and choose **Open**.
+
+Or sign it yourself in Terminal: clear the download flag, then sign the engine server and the app
+on your Mac (ad hoc, no Apple account needed):
 
     xattr -dr com.apple.quarantine "/Applications/X3F Studio.app"
+    codesign --force --sign - "/Applications/X3F Studio.app/Contents/Resources/sppqd"
+    codesign --force --sign - "/Applications/X3F Studio.app"
+
+Or [build it yourself](#build).
 
 ## Build
 
