@@ -46,6 +46,24 @@ final class TaggingService: ObservableObject {
     func isReviewing(_ id: Photo.ID) -> Bool { queued.contains(.review(id)) }
     private var worker: Task<Void, Never>?
 
+    /// Quit the Ollama app when X3F Studio quits (Settings ▸ Local Model). On unless turned off.
+    @Published var quitOllamaOnExit: Bool = UserDefaults.standard.object(forKey: "ai.quitOllama") as? Bool ?? true {
+        didSet { defaults.set(quitOllamaOnExit, forKey: "ai.quitOllama") }
+    }
+    /// The address points at this Mac, so the Ollama app here is the one categorising.
+    var usesLocalOllama: Bool {
+        guard let host = URL(string: endpoint)?.host?.lowercased() else { return false }
+        return host == "localhost" || host == "127.0.0.1" || host == "::1"
+    }
+    /// Called as X3F Studio quits. The Ollama app ignores the usual quit request (it keeps running
+    /// in the menu bar), but on SIGTERM it stops its server and exits, which frees the model's memory.
+    func quitOllamaIfWanted() {
+        guard enabled, quitOllamaOnExit, usesLocalOllama else { return }
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.electron.ollama") {
+            kill(app.processIdentifier, SIGTERM)
+        }
+    }
+
     private var client: OllamaClient { OllamaClient(base: URL(string: endpoint) ?? URL(string: "http://localhost:11434")!) }
     var isRunning: Bool { worker != nil }
     var modelName: String { model.isEmpty ? (models.first { $0.vision }?.name ?? "") : model }

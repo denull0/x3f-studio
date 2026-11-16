@@ -432,6 +432,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
             AppDelegate.state?.library.saveNow()
+            AppDelegate.state?.tagging.quitOllamaIfWanted()
         }
     }
 }

@@ -126,6 +126,9 @@ struct LocalModelSection: View {
                                 Button("Check") { Task { await tagging.refreshModels() } }.disabled(tagging.checking)
                             }
                         }
+                        if tagging.usesLocalOllama {
+                            Toggle("Quit Ollama when X3F Studio quits", isOn: $tagging.quitOllamaOnExit)
+                        }
                         switch tagging.status {
                         case .unavailable(let m): Label(m, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                         case .running: Text("Categorising \(min(tagging.done + 1, tagging.total)) of \(tagging.total)" + (tagging.current.map { " · \($0)" } ?? "")).font(.caption).foregroundStyle(.secondary)
