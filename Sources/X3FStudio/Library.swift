@@ -13,7 +13,7 @@ final class Library: ObservableObject {
     @Published var lastImportSummary: String?
     @Published var errorMessage: String?
 
-    struct ImportProgress { var done: Int; var total: Int; var currentName: String }
+    struct ImportProgress { var done: Int; var total: Int; var currentName: String; var skipped = 0 }
 
     private var saveTask: Task<Void, Never>?
     private static let rootKey = "libraryRoot"
@@ -327,7 +327,7 @@ final class Library: ObservableObject {
         let paths = self.paths
 
         for (i, file) in files.enumerated() {
-            importProgress = ImportProgress(done: i, total: files.count, currentName: file.lastPathComponent)
+            importProgress = ImportProgress(done: i, total: files.count, currentName: file.lastPathComponent, skipped: skippedDuplicates)
             let knownNow = known, knownKeysNow = knownKeys
             let result: Result<Photo, Error> = await Task.detached(priority: .userInitiated) {
                 do {
@@ -352,7 +352,7 @@ final class Library: ObservableObject {
         sortPhotos()
         saveNow()
         var parts = ["Imported \(imported.count) photo\(imported.count == 1 ? "" : "s")"]
-        if skippedDuplicates > 0 { parts.append("\(skippedDuplicates) already in the library") }
+        if skippedDuplicates > 0 { parts.append("skipped \(skippedDuplicates) already in the library") }
         if !failed.isEmpty { parts.append("\(failed.count) failed (\(failed.prefix(2).joined(separator: "; ")))") }
         lastImportSummary = parts.joined(separator: " · ")
         return imported

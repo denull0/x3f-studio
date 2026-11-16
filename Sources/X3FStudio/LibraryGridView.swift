@@ -380,15 +380,20 @@ struct StatusBar: View {
             HStack(spacing: 10) {
                 if let p = importing {
                     ProgressView(value: Double(p.done), total: Double(max(1, p.total))).frame(width: 140)
-                    Text("Importing \(p.done + 1) of \(p.total) · \(p.currentName)").font(.caption)
-                } else if rendering {
-                    ProgressView(value: Double(r.backgroundDone), total: Double(max(1, r.backgroundTotal))).frame(width: 140)
-                    Text("Developing previews with the SIGMA engine · \(r.backgroundDone) of \(r.backgroundTotal)").font(.caption)
-                } else if tagging.isRunning {
-                    ProgressView(value: Double(tagging.done), total: Double(max(1, tagging.total))).frame(width: 140)
-                    Text("Categorising with \(tagging.modelName) · \(min(tagging.done + 1, tagging.total)) of \(tagging.total)" + (tagging.current.map { " · \($0)" } ?? "")).font(.caption).lineLimit(1)
-                } else if let s = lib.lastImportSummary {
-                    Text(s).font(.caption)
+                    Text("Importing \(p.done + 1) of \(p.total) · \(p.currentName)" + (p.skipped > 0 ? " · \(p.skipped) already in the library" : "")).font(.caption).lineLimit(1)
+                } else {
+                    // the last import's result stays in view while its photos develop and get categorised
+                    if let s = lib.lastImportSummary {
+                        Text(s).font(.caption).lineLimit(1)
+                        if rendering || tagging.isRunning { Divider().frame(height: 12) }
+                    }
+                    if rendering {
+                        ProgressView(value: Double(r.backgroundDone), total: Double(max(1, r.backgroundTotal))).frame(width: 140)
+                        Text("Developing previews with the SIGMA engine · \(r.backgroundDone) of \(r.backgroundTotal)").font(.caption)
+                    } else if tagging.isRunning {
+                        ProgressView(value: Double(tagging.done), total: Double(max(1, tagging.total))).frame(width: 140)
+                        Text("Categorising with \(tagging.modelName) · \(min(tagging.done + 1, tagging.total)) of \(tagging.total)" + (tagging.current.map { " · \($0)" } ?? "")).font(.caption).lineLimit(1)
+                    }
                 }
                 Spacer()
                 if let e = r.engineError {
