@@ -65,6 +65,11 @@ final class TaggingService: ObservableObject {
     }
 
     private var client: OllamaClient { OllamaClient(base: URL(string: endpoint) ?? URL(string: "http://localhost:11434")!) }
+    /// For the labelling requests (a photo's notes, a day's title): false when the model is a reasoning
+    /// one, so it answers directly. Its hidden reasoning made every photo take 8 to 13 s instead of
+    /// 1.4 s, with the same notes (gemma4 on an M3 Max, 16 Nov 2026), and kept the GPU and five cores
+    /// busy all through an import. nil for other models, so the option is not sent to them.
+    private var directAnswer: Bool? { models.first { $0.name == modelName }?.thinks == true ? false : nil }
     var isRunning: Bool { worker != nil }
     var modelName: String { model.isEmpty ? (models.first { $0.vision }?.name ?? "") : model }
 
@@ -211,7 +216,7 @@ final class TaggingService: ObservableObject {
         tags — 4 to 8 specific lowercase keywords (subjects, place type, light, season, colours, activity);
         mood — one or two words.
         """
-        var notes: PhotoNotes = try await client.chat(model: modelName, prompt: prompt, images: [data], schema: schema, as: PhotoNotes.self)
+        var notes: PhotoNotes = try await client.chat(model: modelName, prompt: prompt, images: [data], schema: schema, think: directAnswer, as: PhotoNotes.self)
         notes = PhotoNotes(caption: notes.caption.trimmingCharacters(in: .whitespacesAndNewlines),
                            categories: TaggingService.clean(notes.categories).filter { TaggingService.categories.contains($0) },
                            tags: TaggingService.clean(notes.tags), mood: notes.mood?.lowercased().trimmingCharacters(in: .whitespaces))
@@ -312,7 +317,7 @@ final class TaggingService: ObservableObject {
             "properties": ["title": ["type": "string"], "summary": ["type": "string"], "categories": ["type": "array", "items": ["type": "string"]]],
             "required": ["title", "summary", "categories"]]
         do {
-            let day: DayNotes = try await client.chat(model: modelName, prompt: prompt, schema: schema, temperature: 0.4, as: DayNotes.self)
+            let day: DayNotes = try await client.chat(model: modelName, prompt: prompt, schema: schema, temperature: 0.4, think: directAnswer, as: DayNotes.self)
             let info = SessionInfo(title: day.title.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"“”."))),
                                    summary: day.summary.trimmingCharacters(in: .whitespacesAndNewlines),
                                    categories: TaggingService.clean(day.categories).filter { TaggingService.categories.contains($0) },

@@ -57,14 +57,15 @@ final class RenderService: ObservableObject {
 
     // MARK: - Interactive
 
-    /// Quick-display render for the editor: the developed region (or the whole frame for the crop
-    /// tool) in sensor orientation, to be turned and cropped with `EngineImage.composed`.
-    func quickRender(_ photo: Photo, settings: SPPSettings, maxDevicePixels: CGSize, wholeFrame: Bool = false) async throws -> EngineImage {
+    /// Quick-display render: the developed region (or the whole frame for the crop tool) in sensor
+    /// orientation, to be turned and cropped with `EngineImage.composed`. The editor's go to the
+    /// `interactive` server; the background queue passes `background`.
+    func quickRender(_ photo: Photo, settings: SPPSettings, maxDevicePixels: CGSize, wholeFrame: Bool = false, on server: EngineServer? = nil) async throws -> EngineImage {
         let region = wholeFrame ? photo.fullFrame : photo.engineRegion(for: settings)
         let size = quickSize(for: photo, settings: settings, fitting: maxDevicePixels, wholeFrame: wholeFrame)
         let out = paths.quickDir.appendingPathComponent("\(photo.id)-\(UUID().uuidString.prefix(8)).rgb8")
         defer { try? FileManager.default.removeItem(at: out) }
-        let r = try await interactive.render(file: paths.original(photo), settings: settings, mode: .quick(width: size.w, height: size.h), engine: photo.engine,
+        let r = try await (server ?? interactive).render(file: paths.original(photo), settings: settings, mode: .quick(width: size.w, height: size.h), engine: photo.engine,
                                              look: look(for: photo, settings: settings), frame: wholeFrame ? .full : frame(for: photo, settings: settings), output: out)
         guard let img = RawImage.cgImage(rgb8: out, width: r.width, height: r.height, rotation: 0) else {
             throw EngineServer.Failure.badReply
@@ -79,6 +80,12 @@ final class RenderService: ObservableObject {
         guard let raw = RawImage.cgImage(tiff: tiff, applyOrientation: false) else { return nil }
         let region = photo.engineRegion(for: settings)
         let e = EngineImage(image: raw, region: region, scale: CGFloat(raw.width) / CGFloat(max(1, region.width)))
+        return finished(e, photo: photo, settings: settings, maxPixel: maxPixel)
+    }
+
+    /// An engine rendering of the photo's developed region as the finished picture: turned, flipped,
+    /// straightened and cropped. `maxPixel` limits the longer side; the rendering is never enlarged.
+    nonisolated static func finished(_ e: EngineImage, photo: Photo, settings: SPPSettings, maxPixel: Int? = nil) -> CGImage? {
         let crop = photo.frameCrop(for: settings)
         var target = e.scale
         if let m = maxPixel { target = min(target, CGFloat(m) / max(1, max(crop.width, crop.height))) }
@@ -155,10 +162,20 @@ final class RenderService: ObservableObject {
 
     /// Rebuild the grid thumbnail and the editor's placeholder preview from a full render.
     func updateDerivatives(for photo: Photo, from tiff: URL) async {
-        let thumbURL = paths.thumb(photo), previewURL = paths.preview(photo)
         let settings = photo.settings
+        await writeDerivatives(for: photo) { RenderService.finalImage(photo: photo, settings: settings, tiff: tiff, maxPixel: 2048) }
+    }
+
+    /// The same from a quick render of the photo's current settings.
+    func updateDerivatives(for photo: Photo, from rendering: EngineImage) async {
+        let settings = photo.settings
+        await writeDerivatives(for: photo) { RenderService.finished(rendering, photo: photo, settings: settings, maxPixel: 2048) }
+    }
+
+    private func writeDerivatives(for photo: Photo, picture: @escaping () -> CGImage?) async {
+        let thumbURL = paths.thumb(photo), previewURL = paths.preview(photo)
         let written = await Task.detached(priority: .utility) { () -> Bool in
-            guard let preview = RenderService.finalImage(photo: photo, settings: settings, tiff: tiff, maxPixel: 2048) else { return false }
+            guard let preview = picture() else { return false }
             preview.writeJPEG(to: previewURL, quality: 0.88)
             if let thumb = RawImage.downscaled(preview, maxPixel: 640) { thumb.writeJPEG(to: thumbURL, quality: 0.85) }
             return true
@@ -214,13 +231,29 @@ final class RenderService: ObservableObject {
             guard let library, let photo = library.photo(id: id), photo.engine.isSupported else { continue }
             if photo.previewKey == derivativeKey(for: photo) { continue }   // thumbnail and preview already made from these settings
             do {
-                let tiff = try await fullRender(photo, settings: photo.settings, on: background)
-                await updateDerivatives(for: photo, from: tiff)
+                try await refreshDerivatives(for: photo)
                 engineError = nil
             } catch {
                 engineError = error.localizedDescription
                 if case EngineServer.Failure.notInstalled = error { queue.removeAll(); queued.removeAll(); backgroundDone = backgroundTotal - 1 }
             }
+        }
+    }
+
+    /// Thumbnail and preview for the photo's current settings: from its full-quality master when that
+    /// is on disk (the editor or an export made it), otherwise from a preview-size render through the
+    /// engine's quick path, which is what the editor shows first. Developing a master for every photo
+    /// instead, as imports did until 16 Nov 2026, took three times the CPU (19 against 6 CPU-seconds
+    /// per Quattro photo on an M3 Max) and wrote 100 MB per photo, most of which the 3 GB limit on
+    /// masters deleted again. Masters are developed when a photo is opened, exported or published.
+    private func refreshDerivatives(for photo: Photo) async throws {
+        let settings = photo.settings
+        let master = paths.render(photo, settings: settings, look: look(for: photo, settings: settings))
+        if RenderService.isValidMaster(master) {
+            await updateDerivatives(for: photo, from: master)
+        } else {
+            let quick = try await quickRender(photo, settings: settings, maxDevicePixels: CGSize(width: 2048, height: 2048), on: background)
+            await updateDerivatives(for: photo, from: quick)
         }
     }
 

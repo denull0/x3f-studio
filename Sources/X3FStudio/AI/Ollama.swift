@@ -5,6 +5,8 @@ import Foundation
 struct OllamaModel: Identifiable, Hashable {
     let name: String
     var vision: Bool
+    /// The model reasons in a hidden pass before it answers, unless a request tells it not to.
+    var thinks = false
     var id: String { name }
 }
 
@@ -35,17 +37,19 @@ struct OllamaClient: Sendable {
         var out: [OllamaModel] = []
         for m in tags.models {
             let show: ShowReply? = try? await post("api/show", body: ["model": m.name])
-            out.append(OllamaModel(name: m.name, vision: show?.capabilities?.contains("vision") ?? false))
+            out.append(OllamaModel(name: m.name, vision: show?.capabilities?.contains("vision") ?? false, thinks: show?.capabilities?.contains("thinking") ?? false))
         }
         return out.sorted { $0.vision != $1.vision ? $0.vision : $0.name < $1.name }
     }
 
-    /// One chat turn with a JSON schema for the answer; `images` are JPEG/PNG bytes.
-    func chat<T: Decodable>(model: String, prompt: String, images: [Data] = [], schema: [String: Any], temperature: Double = 0.2, as type: T.Type) async throws -> T {
+    /// One chat turn with a JSON schema for the answer; `images` are JPEG/PNG bytes. `think: false`
+    /// tells a reasoning model to answer directly; nil leaves the option out (the model's default).
+    func chat<T: Decodable>(model: String, prompt: String, images: [Data] = [], schema: [String: Any], temperature: Double = 0.2, think: Bool? = nil, as type: T.Type) async throws -> T {
         var message: [String: Any] = ["role": "user", "content": prompt]
         if !images.isEmpty { message["images"] = images.map { $0.base64EncodedString() } }
-        let body: [String: Any] = ["model": model, "messages": [message], "stream": false, "format": schema,
+        var body: [String: Any] = ["model": model, "messages": [message], "stream": false, "format": schema,
                                    "keep_alive": "15m", "options": ["temperature": temperature]]
+        if let think { body["think"] = think }
         let reply: ChatReply = try await post("api/chat", body: body)
         guard let data = reply.message.content.data(using: .utf8) else { throw Failure.badReply }
         do { return try JSONDecoder().decode(T.self, from: data) } catch { throw Failure.badReply }

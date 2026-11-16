@@ -71,6 +71,11 @@ Import skips files already in the library (by content hash and by name+size+date
 files from cameras neither engine develops (the X3F 2.x generation: SD9/SD10/SD14/SD15,
 DP1/DP2) are imported and organised too, but show and export the camera's own JPEG.
 
+An imported photo gets its thumbnail and preview from a preview-size render (the engine's quick
+path, a third of the work of a master); its 16-bit master is developed when the photo is opened,
+exported or published. The local model is asked for its answer without a reasoning pass, which
+takes a labelling request from about 10 s to 1.4 s (gemma4 on an M3 Max).
+
 ## How rendering works
 
 `engine/sppqd.c` is a persistent server around both engines (started three times: the editor's
