@@ -229,9 +229,7 @@ struct EditorView: View {
                     Button { state.publishToBlank([photoID]) } label: { Label("Publish to Blank", systemImage: "paperplane") }
                         .help("Publish this photo as a Blank post (⇧⌘P)")
                 }
-                Button { state.exportSelected() } label: { Label("Export JPEG", systemImage: "photo.badge.arrow.down") }
-                    .help("Export full-size JPEG to the library's Exports folder (⌘E)")
-                    .disabled(state.exportProgress != nil)
+                ExportMenu(enabled: state.exportProgress == nil)
                 ShareButton(enabled: state.exportProgress == nil) { view in state.share(anchor: view) }
             }
         }

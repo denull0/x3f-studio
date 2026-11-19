@@ -148,16 +148,22 @@ final class AppState: ObservableObject {
 
     // MARK: - Settings
 
-    /// Where JPEGs go: a folder chosen in Settings, else `Exports` inside the library.
+    /// Where exports go: a folder chosen in Settings, else `Exports` inside the library. Print TIFFs
+    /// and web/social JPEGs get its `Print` and `Web` subfolders (see `ExportKind`).
     @Published var exportFolder: URL? = UserDefaults.standard.string(forKey: "exportFolder").map { URL(fileURLWithPath: $0, isDirectory: true) } {
         didSet {
             defaults.set(exportFolder?.path, forKey: "exportFolder")
             LibraryPaths.customExportsDir = exportFolder
-            library.refreshExportedJPEGs()
+            library.refreshExported()
         }
     }
+    /// Quality of the full-size JPEG export.
     @Published var jpegQuality: Double = UserDefaults.standard.object(forKey: "jpegQuality") as? Double ?? 0.92 {
         didSet { defaults.set(jpegQuality, forKey: "jpegQuality") }
+    }
+    /// Longest side of a web/social export, in pixels.
+    @Published var webLongEdge: Int = UserDefaults.standard.object(forKey: "webLongEdge") as? Int ?? 2048 {
+        didSet { defaults.set(webLongEdge, forKey: "webLongEdge") }
     }
     @Published var revealAfterExport: Bool = UserDefaults.standard.object(forKey: "revealAfterExport") as? Bool ?? true {
         didSet { defaults.set(revealAfterExport, forKey: "revealAfterExport") }
@@ -166,7 +172,7 @@ final class AppState: ObservableObject {
     func chooseExportFolder() {
         let panel = NSOpenPanel()
         panel.title = "Choose Export Folder"
-        panel.message = "Exported JPEGs are written to this folder."
+        panel.message = "Exported files are written to this folder: print TIFFs into Print, web/social JPEGs into Web."
         panel.prompt = "Use This Folder"
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
@@ -295,15 +301,21 @@ final class AppState: ObservableObject {
         return library.photos.filter { selection.contains($0.id) }
     }
 
-    func exportSelected(to folder: URL? = nil) {
+    private func exportOptions(_ kind: ExportKind) -> ExportOptions {
+        ExportOptions(kind: kind, jpegQuality: jpegQuality, webLongEdge: webLongEdge)
+    }
+
+    /// Export the selected photos (or the one being edited) for print, for web/social, or as
+    /// full-size JPEGs. Without `folder` they go to the kind's place in the export folder.
+    func exportSelected(_ kind: ExportKind = .jpeg, to folder: URL? = nil) {
         let photos = exportCandidates
         guard !photos.isEmpty, exportProgress == nil else { return }
-        let dest = folder ?? library.paths.exportsDir
+        let dest = folder ?? kind.folder(in: library.paths.exportsDir)
         exportProgress = ExportProgress(done: 0, total: photos.count, name: "")
         Task {
             defer { exportProgress = nil }
             do {
-                let files = try await renders.export(photos, to: dest, quality: jpegQuality) { [weak self] done, total, name in
+                let files = try await renders.export(photos, exportOptions(kind), to: dest) { [weak self] done, total, name in
                     self?.exportProgress = ExportProgress(done: done, total: total, name: name)
                 }
                 if !files.isEmpty, revealAfterExport { NSWorkspace.shared.activateFileViewerSelecting(files) }
@@ -313,10 +325,11 @@ final class AppState: ObservableObject {
         }
     }
 
-    func exportViaPanel() {
+    /// The same into a folder chosen now; the files go straight into it, without a subfolder.
+    func exportViaPanel(_ kind: ExportKind = .jpeg) {
         let panel = NSOpenPanel()
-        panel.title = "Export JPEG"
-        panel.message = "Choose a folder for the JPEG files."
+        panel.title = kind.command
+        panel.message = kind == .print ? "Choose a folder for the TIFF files." : "Choose a folder for the JPEG files."
         panel.prompt = "Export Here"
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
@@ -324,7 +337,7 @@ final class AppState: ObservableObject {
         panel.directoryURL = library.paths.exportsDir
         panel.begin { [weak self] resp in
             guard resp == .OK, let url = panel.url else { return }
-            self?.exportSelected(to: url)
+            self?.exportSelected(kind, to: url)
         }
     }
 
@@ -337,7 +350,7 @@ final class AppState: ObservableObject {
         Task {
             defer { exportProgress = nil }
             do {
-                let files = try await renders.export(photos, to: dir, quality: jpegQuality) { [weak self] done, total, name in
+                let files = try await renders.export(photos, exportOptions(.jpeg), to: dir) { [weak self] done, total, name in
                     self?.exportProgress = ExportProgress(done: done, total: total, name: name)
                 }
                 guard !files.isEmpty else { return }

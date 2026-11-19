@@ -10,7 +10,7 @@
 
 A small macOS app for Sigma dp Quattro and Merrill photos: import X3F files (or whole
 folders) into a library organised by capture date, adjust them with **SIGMA Photo Pro's own
-engines**, and export JPEGs to share.
+engines**, and export them for print, for web and social, or as full-size JPEGs.
 
 Every image you see in the editor is rendered by SIGMA Photo Pro 6's own libraries —
 `lib95_QuattroDLLForMac.dylib` for dp Quattro files (X3F 4.x) and `lib99_MerillDLLForMac.dylib`
@@ -58,7 +58,9 @@ Default library: `~/Pictures/X3F Studio` (change it in the Library menu).
 
     X3F Studio/
       2026/2026-11-07/SDIM0457.X3F     originals, copied on import, by capture date
-      Exports/SDIM0457.jpg             "Export JPEG" writes here (full size, EXIF kept)
+      Exports/SDIM0457.jpg             full-size JPEG
+      Exports/Print/SDIM0457.tif       for print: 16-bit TIFF
+      Exports/Web/SDIM0457.jpg         for web and social: smaller JPEG
       .x3fstudio/
         catalog.json                   photos + their settings
         thumbs/ previews/              grid thumbnails and editor placeholders
@@ -70,6 +72,18 @@ Default library: `~/Pictures/X3F Studio` (change it in the Library menu).
 Import skips files already in the library (by content hash and by name+size+date). X3F
 files from cameras neither engine develops (the X3F 2.x generation: SD9/SD10/SD14/SD15,
 DP1/DP2) are imported and organised too, but show and export the camera's own JPEG.
+
+Export (toolbar, File menu or right-click) comes in three kinds. All are made from the photo's
+16-bit master, in sRGB, with the camera's EXIF:
+
+* **For Print** (⌥⌘E): a 16-bit TIFF at full size and 300 ppi, uncompressed, about 100 MB for a
+  whole Quattro frame. Turns, straightening and the crop are applied in 16 bits; an unedited
+  photo comes out sample for sample as the engine developed it.
+* **For Web/Social** (⌃⌘E): a JPEG with its longest side at 2048 px (1080, 1600 or 3000 in
+  Settings) and 85% quality, around 1 MB.
+* **Full-Size JPEG** (⌘E): at the quality set in Settings, 92% unless changed.
+
+File ▸ Export To writes any of them into a folder chosen on the spot.
 
 An imported photo gets its thumbnail and preview from a preview-size render (the engine's quick
 path, a third of the work of a master); its 16-bit master is developed when the photo is opened,
@@ -95,7 +109,7 @@ Three tiers, all from the engine:
   alias the pattern badly, so always ask for exactly half.
 * **Final** (after ~0.6 s idle, and for export): the 16-bit save designation (5) at full
   size, ~2 s on a loaded file; written as TIFF, cached, shown at full resolution so 100% is
-  sharp. Export encodes this TIFF to JPEG with the camera's EXIF.
+  sharp. Every export is made from this TIFF.
 * The 8-bit save designations (4, 6) scale a fully processed image to any size in ~1.8 s,
   but apply a slightly different tone curve than the 16-bit path (shadows +4–5, highlights
   −3–6 of 255), so they are not used.

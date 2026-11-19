@@ -33,6 +33,12 @@ enum RawImage {
         return CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary)
     }
 
+    /// The engine's 16-bit master at its full depth, in sensor orientation (for the print export).
+    static func cgImage(deepTIFF url: URL) -> CGImage? {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
+    }
+
     static func cgImage(file url: URL, maxPixel: Int) -> CGImage? {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
         let opts: [CFString: Any] = [
@@ -94,5 +100,22 @@ enum JPEGExport {
         var props = metadata(for: photo, original: original)
         props[kCGImagePropertyDPIWidth] = 300; props[kCGImagePropertyDPIHeight] = 300
         guard img.writeJPEG(to: jpeg, quality: quality, properties: props) else { throw NSError(domain: "X3FStudio", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not write \(jpeg.lastPathComponent)"]) }
+    }
+}
+
+enum TIFFExport {
+    /// 16-bit TIFF from a finished image composed in 16 bits (`RenderService.finalImage` with
+    /// `deep: true`): uncompressed, three samples per pixel, the sRGB profile embedded, 300 ppi and
+    /// the camera's metadata. About 100 MB for a whole Quattro frame.
+    static func write(image img: CGImage, to tiff: URL, photo: Photo, original: URL) throws {
+        var props = JPEGExport.metadata(for: photo, original: original)
+        props[kCGImagePropertyDPIWidth] = 300; props[kCGImagePropertyDPIHeight] = 300
+        guard let dest = CGImageDestinationCreateWithURL(tiff as CFURL, UTType.tiff.identifier as CFString, 1, nil) else {
+            throw NSError(domain: "X3FStudio", code: 3, userInfo: [NSLocalizedDescriptionKey: "Could not create \(tiff.lastPathComponent)"])
+        }
+        CGImageDestinationAddImage(dest, img, props as CFDictionary)
+        guard CGImageDestinationFinalize(dest) else {
+            throw NSError(domain: "X3FStudio", code: 3, userInfo: [NSLocalizedDescriptionKey: "Could not write \(tiff.lastPathComponent)"])
+        }
     }
 }

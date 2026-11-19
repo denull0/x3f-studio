@@ -34,12 +34,23 @@ struct X3FStudioApp: App {
                 Button("Import Photos…") { state.importViaPanel() }.keyboardShortcut("i", modifiers: .command)
             }
             CommandGroup(after: .importExport) {
-                Button("Export JPEG") { state.exportSelected() }
+                Button(ExportKind.print.command) { state.exportSelected(.print) }
+                    .keyboardShortcut("e", modifiers: [.command, .option])
+                    .disabled(state.exportCandidates.isEmpty)
+                Button(ExportKind.web.command) { state.exportSelected(.web) }
+                    .keyboardShortcut("e", modifiers: [.command, .control])
+                    .disabled(state.exportCandidates.isEmpty)
+                Button(ExportKind.jpeg.command) { state.exportSelected(.jpeg) }
                     .keyboardShortcut("e", modifiers: .command)
                     .disabled(state.exportCandidates.isEmpty)
-                Button("Export JPEG To…") { state.exportViaPanel() }
-                    .keyboardShortcut("e", modifiers: [.command, .shift])
-                    .disabled(state.exportCandidates.isEmpty)
+                // into a folder chosen on the spot instead of the export folder
+                Menu("Export To") {
+                    Button(ExportKind.print.title + "…") { state.exportViaPanel(.print) }
+                    Button(ExportKind.web.title + "…") { state.exportViaPanel(.web) }
+                    Button(ExportKind.jpeg.title + "…") { state.exportViaPanel(.jpeg) }
+                        .keyboardShortcut("e", modifiers: [.command, .shift])
+                }
+                .disabled(state.exportCandidates.isEmpty)
                 Button("Show Exports in Finder") { state.revealExports() }
             }
             CommandMenu("Photo") {

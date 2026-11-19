@@ -72,10 +72,15 @@ struct LibraryGridView: View {
             Button("Publish to Blank…") { state.publishToBlank(contextTargets(photo)) }
             if let post = photo.blankPost { Button("Open on Blank") { NSWorkspace.shared.open(post.url) } }
         }
-        Button("Export JPEG") { state.selection = [photo.id]; state.exportSelected() }
+        Menu("Export") {
+            ForEach(ExportKind.allCases) { kind in
+                Button(kind.title) { state.selection = [photo.id]; state.exportSelected(kind) }
+            }
+        }
         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([library.paths.original(photo)]) }
-        if let jpeg = library.exportedJPEG(photo) {
-            Button("Show Exported JPEG in Finder") { NSWorkspace.shared.activateFileViewerSelecting([jpeg]) }
+        let exports = library.exportedFiles(photo)
+        if !exports.isEmpty {
+            Button(exports.count == 1 ? "Show Exported File in Finder" : "Show Exported Files in Finder") { NSWorkspace.shared.activateFileViewerSelecting(exports) }
         }
         Divider()
         Button("Remove from Library…") { state.selection = [photo.id]; state.removeSelected() }
@@ -137,9 +142,7 @@ struct LibraryGridView: View {
                         .help("Publish the selected photos as a Blank post (⇧⌘P)")
                         .disabled(state.selection.isEmpty)
                 }
-                Button { state.exportSelected() } label: { Label("Export JPEG", systemImage: "photo.badge.arrow.down") }
-                    .help("Export full-size JPEG to the library's Exports folder (⌘E)")
-                    .disabled(state.selection.isEmpty || state.exportProgress != nil)
+                ExportMenu(enabled: !state.selection.isEmpty && state.exportProgress == nil)
                 ShareButton(enabled: !state.selection.isEmpty && state.exportProgress == nil) { view in state.share(anchor: view) }
             }
         }
@@ -302,8 +305,8 @@ struct EditBadges: View {
             if !photo.tags.isEmpty { Image(systemName: "tag.fill") }
             if photo.blankPost != nil { Image(systemName: "paperplane.fill") }
             if state.tagging.reviewEnabled, photo.aiAdvice?.needsWork == true { Image(systemName: "wand.and.stars").foregroundStyle(.orange) }
-            if photo.exportedAt != nil || state.library.exportedJPEG(photo) != nil {
-                // a JPEG version exists: in the Exports folder, or exported / shared elsewhere (dimmed if edited since)
+            if photo.exportedAt != nil || !state.library.exportedFiles(photo).isEmpty {
+                // an exported version exists: in the export folder, or exported / shared elsewhere (dimmed if edited since)
                 let current = photo.exportedSettings == nil || photo.isExportCurrent
                 Image(systemName: "photo.badge.arrow.down").opacity(current ? 1 : 0.55)
             }

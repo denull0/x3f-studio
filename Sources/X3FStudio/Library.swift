@@ -23,8 +23,9 @@ final class Library: ObservableObject {
     @Published private(set) var presets: [Preset] = []
     /// The user's presets followed by the built-in ones.
     var allPresets: [Preset] { presets + Preset.builtIn }
-    /// Base names (lower-cased, no extension) of the JPEGs in the library's Exports folder.
-    @Published private(set) var exportedJPEGs: Set<String> = []
+    /// The files in the export folder and its `Print` and `Web` subfolders, by photo base name
+    /// (lower-cased, no extension).
+    @Published private(set) var exported: [String: [URL]] = [:]
 
     init() {
         let stored = UserDefaults.standard.string(forKey: Library.rootKey).map { URL(fileURLWithPath: $0, isDirectory: true) }
@@ -65,19 +66,25 @@ final class Library: ObservableObject {
         if relabelled { scheduleSave() }
         fillFrameGeometry()
         loadPresets()
-        refreshExportedJPEGs()
+        refreshExported()
     }
 
-    /// Re-read the Exports folder (at open, and after an export).
-    func refreshExportedJPEGs() {
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: paths.exportsDir.path)) ?? []
-        exportedJPEGs = Set(names.filter { ["jpg", "jpeg"].contains(($0 as NSString).pathExtension.lowercased()) }.map { ($0 as NSString).deletingPathExtension.lowercased() })
+    /// Re-read the export folder and its `Print` and `Web` subfolders (at open, and after an export).
+    func refreshExported() {
+        let fm = FileManager.default
+        var found: [String: [URL]] = [:]
+        for kind in ExportKind.allCases {
+            let dir = kind.folder(in: paths.exportsDir)
+            for name in ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? []).sorted() {
+                guard ["jpg", "jpeg", "tif", "tiff"].contains((name as NSString).pathExtension.lowercased()) else { continue }
+                found[(name as NSString).deletingPathExtension.lowercased(), default: []].append(dir.appendingPathComponent(name))
+            }
+        }
+        exported = found
     }
-    /// The photo's JPEG in the Exports folder, if there is one.
-    func exportedJPEG(_ p: Photo) -> URL? {
-        let base = (p.fileName as NSString).deletingPathExtension
-        guard exportedJPEGs.contains(base.lowercased()) else { return nil }
-        return paths.exportsDir.appendingPathComponent(base + ".jpg")
+    /// The photo's files in the export folder, if there are any: print TIFF, web/social JPEG, full-size JPEG.
+    func exportedFiles(_ p: Photo) -> [URL] {
+        exported[(p.fileName as NSString).deletingPathExtension.lowercased()] ?? []
     }
 
     /// Catalogs written before cropping existed lack the sensor frame and the camera crop; read them
@@ -168,7 +175,7 @@ final class Library: ObservableObject {
     func markExported(_ id: Photo.ID) {
         guard let i = photos.firstIndex(where: { $0.id == id }) else { return }
         photos[i].exportedAt = Date(); photos[i].exportedSettings = photos[i].settings.quantized(); scheduleSave()
-        refreshExportedJPEGs()
+        refreshExported()
     }
 
     /// Every tag in the library with how many photos carry it, most used first.

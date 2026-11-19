@@ -75,21 +75,22 @@ final class RenderService: ObservableObject {
     }
 
     /// The finished image for a photo + settings from its 16-bit master: turned, flipped, straightened
-    /// and cropped. `maxPixel` limits the longer side.
-    nonisolated static func finalImage(photo: Photo, settings: SPPSettings, tiff: URL, maxPixel: Int? = nil) -> CGImage? {
-        guard let raw = RawImage.cgImage(tiff: tiff, applyOrientation: false) else { return nil }
+    /// and cropped. `maxPixel` limits the longer side. `deep` keeps the master's 16 bits per channel
+    /// (the print export); otherwise the picture is 8-bit, which is all a JPEG or the screen takes.
+    nonisolated static func finalImage(photo: Photo, settings: SPPSettings, tiff: URL, maxPixel: Int? = nil, deep: Bool = false) -> CGImage? {
+        guard let raw = deep ? RawImage.cgImage(deepTIFF: tiff) : RawImage.cgImage(tiff: tiff, applyOrientation: false) else { return nil }
         let region = photo.engineRegion(for: settings)
         let e = EngineImage(image: raw, region: region, scale: CGFloat(raw.width) / CGFloat(max(1, region.width)))
-        return finished(e, photo: photo, settings: settings, maxPixel: maxPixel)
+        return finished(e, photo: photo, settings: settings, maxPixel: maxPixel, deep: deep)
     }
 
     /// An engine rendering of the photo's developed region as the finished picture: turned, flipped,
     /// straightened and cropped. `maxPixel` limits the longer side; the rendering is never enlarged.
-    nonisolated static func finished(_ e: EngineImage, photo: Photo, settings: SPPSettings, maxPixel: Int? = nil) -> CGImage? {
+    nonisolated static func finished(_ e: EngineImage, photo: Photo, settings: SPPSettings, maxPixel: Int? = nil, deep: Bool = false) -> CGImage? {
         let crop = photo.frameCrop(for: settings)
         var target = e.scale
         if let m = maxPixel { target = min(target, CGFloat(m) / max(1, max(crop.width, crop.height))) }
-        return e.composed(geometry: photo.geometry(for: settings), straighten: settings.straighten, crop: crop, targetScale: target)
+        return e.composed(geometry: photo.geometry(for: settings), straighten: settings.straighten, crop: crop, targetScale: target, deep: deep)
     }
 
     /// Size for the quick render: the photo as it is shown, i.e. fitted into `px` (the image area in
@@ -259,25 +260,40 @@ final class RenderService: ObservableObject {
 
     // MARK: - Export
 
-    /// Export full-size JPEGs into `folder`. Returns the written files.
-    func export(_ photos: [Photo], to folder: URL, quality: Double = 0.92, progress: @MainActor (Int, Int, String) -> Void) async throws -> [URL] {
+    /// Export the photos into `folder` as the options' kind says: a 16-bit TIFF at full size for
+    /// print, a JPEG with its longest side limited for web/social, or a full-size JPEG. All three
+    /// come from the photo's 16-bit master. Returns the written files.
+    func export(_ photos: [Photo], _ options: ExportOptions, to folder: URL, progress: @MainActor (Int, Int, String) -> Void) async throws -> [URL] {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let kind = options.kind
+        let maxPixel = kind == .web ? options.webLongEdge : nil
+        let quality = kind == .web ? ExportOptions.webQuality : options.jpegQuality
         var written: [URL] = []
         for (i, photo) in photos.enumerated() {
             progress(i, photos.count, photo.fileName)   // synchronous on the main actor, so it can't outlive the caller's cleanup
-            let dest = folder.appendingPathComponent(photo.fileName).deletingPathExtension().appendingPathExtension("jpg")
+            let base = folder.appendingPathComponent(photo.fileName).deletingPathExtension()
+            let original = paths.original(photo)
+            var dest = base.appendingPathExtension("jpg")
             if photo.engine.isSupported {
                 let tiff = try await fullRender(photo, settings: photo.settings, on: background)
                 let settings = photo.settings
-                guard let img = await Task.detached(priority: .userInitiated, operation: { RenderService.finalImage(photo: photo, settings: settings, tiff: tiff) }).value else {
+                guard let img = await Task.detached(priority: .userInitiated, operation: {
+                    RenderService.finalImage(photo: photo, settings: settings, tiff: tiff, maxPixel: maxPixel, deep: kind == .print)
+                }).value else {
                     throw NSError(domain: "X3FStudio", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not read the rendered image"])
                 }
-                try JPEGExport.write(image: img, to: dest, photo: photo, original: paths.original(photo), quality: quality)
+                if kind == .print {
+                    dest = base.appendingPathExtension(kind.fileExtension)
+                    try TIFFExport.write(image: img, to: dest, photo: photo, original: original)
+                } else {
+                    try JPEGExport.write(image: img, to: dest, photo: photo, original: original, quality: quality)
+                }
                 await updateDerivatives(for: photo, from: tiff)
             } else {
-                // files no engine here develops (X3F 2.x cameras): export the camera's own JPEG.
-                guard let x = try? X3FFile(url: paths.original(photo)), let up = x.embeddedThumbnail(maxPixel: nil) else { continue }
-                var props = JPEGExport.metadata(for: photo, original: paths.original(photo))
+                // files no engine here develops (X3F 2.x cameras): export the camera's own JPEG, which
+                // is all there is, so "for print" is that JPEG at full size
+                guard let x = try? X3FFile(url: original), let up = x.embeddedThumbnail(maxPixel: maxPixel) else { continue }
+                var props = JPEGExport.metadata(for: photo, original: original)
                 props[kCGImagePropertyDPIWidth] = 300; props[kCGImagePropertyDPIHeight] = 300
                 up.writeJPEG(to: dest, quality: quality, properties: props)
             }

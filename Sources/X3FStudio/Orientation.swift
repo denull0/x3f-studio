@@ -73,12 +73,15 @@ struct EngineImage {
     let scale: CGFloat      // image pixels per sensor pixel
 
     /// The region turned upright (with the user's turns, flips and straightening) and cut to `crop`
-    /// (display space). `targetScale` nil keeps this image's scale.
-    func composed(geometry g: FrameGeometry, straighten: Double, crop: CGRect, targetScale: CGFloat? = nil) -> CGImage? {
+    /// (display space). `targetScale` nil keeps this image's scale. `deep` composes in 16 bits per
+    /// channel instead of 8, for the print export: a 16-bit master drawn that way without a turn or
+    /// a crop comes out sample for sample (checked on a 4816 × 3616 Quattro master, 19 Nov 2026).
+    func composed(geometry g: FrameGeometry, straighten: Double, crop: CGRect, targetScale: CGFloat? = nil, deep: Bool = false) -> CGImage? {
         let s = targetScale ?? scale
         let w = max(1, Int((crop.width * s).rounded())), h = max(1, Int((crop.height * s).rounded()))
-        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
-                                  space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return nil }
+        let info = CGImageAlphaInfo.noneSkipLast.rawValue | (deep ? CGBitmapInfo.byteOrder16Little.rawValue : 0)
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: deep ? 16 : 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: info) else { return nil }
         ctx.setFillColor(CGColor(gray: 0.11, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
         ctx.interpolationQuality = abs(straighten) > 0.001 || s != scale ? .high : .default
         // work in y-down display pixels scaled by s

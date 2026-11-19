@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Settings window (⌘,): appearance, the library and export folders, JPEG quality, SIGMA Photo
+/// The Settings window (⌘,): appearance, the library and export folders, export size and quality, SIGMA Photo
 /// Pro's colour adjustment, and the saved presets.
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
@@ -24,18 +24,23 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Export") {
-                folderRow("JPEG folder", state.library.paths.exportsDir)
+                folderRow("Folder", state.library.paths.exportsDir)
                 HStack {
                     Button("Choose Folder…") { state.chooseExportFolder() }
                     if state.exportFolder != nil { Button("Use the Library's Exports Folder") { state.exportFolder = nil } }
                     Button("Show in Finder") { state.revealExports() }
                 }
+                Picker("Web/social size", selection: $state.webLongEdge) {
+                    ForEach(ExportOptions.webLongEdges, id: \.self) { px in Text("\(String(px)) px longest side").tag(px) }
+                }
                 HStack {
-                    Text("JPEG quality")
+                    Text("Full-size JPEG quality")
                     Slider(value: $state.jpegQuality, in: 0.7...1.0, step: 0.01)
                     Text("\(Int((state.jpegQuality * 100).rounded()))%").font(.body.monospacedDigit()).frame(width: 44, alignment: .trailing)
                 }
                 Toggle("Show exported files in the Finder", isOn: $state.revealAfterExport)
+                Text("For Print writes a 16-bit TIFF at full size into the folder's Print subfolder. For Web/Social writes an sRGB JPEG at the size above into Web. Full-size JPEGs go into the folder itself.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             LocalModelSection(tagging: state.tagging)
             if state.blankEnabled {
